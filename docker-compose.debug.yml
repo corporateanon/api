@@ -1,0 +1,13 @@
+version: '2.1'
+
+services:
+  api:
+    image: api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    environment:
+      DB_DRIVER: sqlite3
+      DB_CONNECTION: /var/run/db.sqlite3

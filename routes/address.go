@@ -36,6 +36,10 @@ func (service *AddressService) GetByID(w http.ResponseWriter, r *http.Request) {
 		Preload("Subscriptions").
 		Where(id).
 		First(address)
+	if address.ID == 0 {
+		utils.ErrorNotFound(w, "Address not found")
+		return
+	}
 
 	utils.Success(w, address)
 }
