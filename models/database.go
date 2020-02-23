@@ -25,8 +25,10 @@ const (
 
 type AddressAr struct {
 	gorm.Model
-	CheckStatus AddressArCheckStatus
-	TakenAt     time.Time
+	CheckStatus    AddressArCheckStatus
+	ServiceMessage string
+	TakenAt        time.Time
+	CheckedAt      time.Time
 }
 
 //NewDatabase creates database connection

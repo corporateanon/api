@@ -29,3 +29,4 @@
 *.env
 *.sqlite3
 data
+debug

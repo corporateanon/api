@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -51,6 +53,51 @@ func (service *AddressService) TakeNext(w http.ResponseWriter, r *http.Request) 
 	}
 
 	address.TakenAt = time.Now()
+	err = service.db.Save(address).Error
+	if err != nil {
+		utils.ErrorInternal(w, err.Error())
+		return
+	}
+	utils.Success(w, address)
+}
+
+type AddressUpdatePayload struct {
+	CheckStatus    models.AddressArCheckStatus
+	ServiceMessage string
+}
+
+func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.ParseUint(vars["id"], 10, 64)
+	if err != nil {
+		utils.ErrorBadRequest(w, err.Error())
+		return
+	}
+
+	var payload AddressUpdatePayload
+	err = json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		utils.ErrorBadRequest(w, err.Error())
+		return
+	}
+	if payload.CheckStatus != models.AddressStatusNoWork && payload.CheckStatus != models.AddressStatusWork {
+		utils.ErrorBadRequest(w, fmt.Sprintf("CheckStatus may be either '%s' or '%s'", models.AddressStatusNoWork, models.AddressStatusWork))
+		return
+	}
+
+	address := &models.AddressAr{}
+	err = service.db.Where(id).First(address).Error
+	if err != nil {
+		utils.ErrorInternal(w, err.Error())
+		return
+	}
+	if address.ID == 0 {
+		utils.ErrorNotFound(w, "Not found")
+		return
+	}
+	address.CheckStatus = payload.CheckStatus
+	address.ServiceMessage = payload.ServiceMessage
+	address.CheckedAt = time.Now()
 	err = service.db.Save(address).Error
 	if err != nil {
 		utils.ErrorInternal(w, err.Error())
