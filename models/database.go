@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -24,6 +26,7 @@ const (
 type AddressAr struct {
 	gorm.Model
 	CheckStatus AddressArCheckStatus
+	TakenAt     time.Time
 }
 
 //NewDatabase creates database connection

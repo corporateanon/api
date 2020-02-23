@@ -20,6 +20,17 @@ func ErrorBadRequest(w http.ResponseWriter, message string) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"error": message})
 }
 
+func ErrorNotFound(w http.ResponseWriter, message string) {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(map[string]interface{}{"error": message})
+}
+func ErrorInternal(w http.ResponseWriter, message string) {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusInternalServerError)
+	json.NewEncoder(w).Encode(map[string]interface{}{"error": message})
+}
+
 func Success(w http.ResponseWriter, data interface{}) {
 	Respond(w, map[string]interface{}{"result": data})
 }

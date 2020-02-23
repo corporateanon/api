@@ -21,5 +21,8 @@ func NewRouter(
 	r.HandleFunc("/address/{id}", addressService.GetByID).
 		Methods("GET")
 
+	r.HandleFunc("/address/take", addressService.TakeNext).
+		Methods("POST")
+
 	return r
 }
