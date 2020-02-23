@@ -29,6 +29,7 @@ type AddressAr struct {
 	ServiceMessage string
 	TakenAt        time.Time
 	CheckedAt      time.Time
+	Subscriptions  []Subscription `gorm:"foreignkey:AddressArID"`
 }
 
 //NewDatabase creates database connection

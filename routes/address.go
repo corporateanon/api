@@ -33,6 +33,7 @@ func (service *AddressService) GetByID(w http.ResponseWriter, r *http.Request) {
 	address := &models.AddressAr{}
 
 	service.db.
+		Preload("Subscriptions").
 		Where(id).
 		First(address)
 
