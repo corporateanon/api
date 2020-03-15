@@ -9,5 +9,26 @@ services:
     ports:
       - 8000:8000
     environment:
-      DB_DRIVER: sqlite3
-      DB_CONNECTION: /var/run/db.sqlite3
+      DB_DRIVER: mysql
+      DB_CONNECTION: root:toor@tcp(db)/bot?charset=utf8mb4&parseTime=True&loc=Local
+    depends_on:
+     - db
+  db:
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: toor
+      MYSQL_DATABASE: bot
+    ports:
+      - 13306:3306
+    volumes:
+      - dbdata:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+volumes:
+  dbdata:
