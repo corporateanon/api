@@ -49,8 +49,13 @@ func (service *AddressService) TakeNext(w http.ResponseWriter, r *http.Request) 
 	address := &models.AddressAr{}
 	err := service.db.Order("taken_at ASC").First(address).Error
 	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
+		if err.Error() == "record not found" {
+			utils.ErrorNotFound(w, "No addresses in database")
+			return
+		} else {
+			utils.ErrorInternal(w, err.Error())
+			return
+		}
 	}
 	if address.ID == 0 {
 		utils.ErrorNotFound(w, "No addresses in database")
