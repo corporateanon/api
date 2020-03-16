@@ -44,6 +44,17 @@ func (service *AddressService) GetByID(w http.ResponseWriter, r *http.Request) {
 	utils.Success(w, address)
 }
 
+func (service *AddressService) GetTotalCount(w http.ResponseWriter, r *http.Request) {
+	address := &models.AddressAr{}
+	var cnt int64 = 0
+	err := service.db.Model(address).Count(&cnt).Error
+	if err != nil {
+		utils.ErrorInternal(w, err.Error())
+		return
+	}
+	utils.Success(w, cnt)
+}
+
 // TakeNext takes the oldest taken address and updates its TakenAt field to the present moment
 func (service *AddressService) TakeNext(w http.ResponseWriter, r *http.Request) {
 	address := &models.AddressAr{}

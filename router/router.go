@@ -18,6 +18,9 @@ func NewRouter(
 	r.HandleFunc("/chat/{chatID}/subscription", subscriptionService.GetByChatID).
 		Methods("GET")
 
+	r.HandleFunc("/address/count", addressService.GetTotalCount).
+		Methods("GET")
+
 	r.HandleFunc("/address/{id}", addressService.GetByID).
 		Methods("GET")
 
