@@ -27,7 +27,7 @@ const (
 type AddressAr struct {
 	gorm.Model
 	CheckStatus    AddressArCheckStatus
-	ServiceMessage string
+	ServiceMessage string `gorm:"size:2048"`
 	TakenAt        time.Time
 	CheckedAt      time.Time
 	Subscriptions  []Subscription `gorm:"foreignkey:AddressArID"`
