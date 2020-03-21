@@ -133,6 +133,7 @@ func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 type GeocodeResponseAddress struct {
+	ID            uint32
 	Distance      float64
 	AddressString string
 }
@@ -172,6 +173,7 @@ func (service *AddressService) Geocode(w http.ResponseWriter, r *http.Request) {
 	response := GeocodeResponse{Addresses: []GeocodeResponseAddress{}}
 	for _, item := range result {
 		response.Addresses = append(response.Addresses, GeocodeResponseAddress{
+			ID:            item.FullAddress.Address.ID,
 			Distance:      item.Distance,
 			AddressString: formatGeocodingResult(item),
 		})
