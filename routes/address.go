@@ -85,6 +85,7 @@ func (service *AddressService) TakeNext(w http.ResponseWriter, r *http.Request) 
 type AddressUpdatePayload struct {
 	CheckStatus    models.AddressArCheckStatus
 	ServiceMessage string
+	Hash           string
 }
 
 func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +119,7 @@ func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	address.CheckStatus = payload.CheckStatus
 	address.ServiceMessage = payload.ServiceMessage
+	address.Hash = payload.Hash
 	address.CheckedAt = time.Now()
 	err = service.db.Save(address).Error
 	if err != nil {
