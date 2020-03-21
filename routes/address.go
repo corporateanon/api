@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -58,6 +59,33 @@ func (service *AddressService) GetTotalCount(w http.ResponseWriter, r *http.Requ
 	utils.Success(w, cnt)
 }
 
+type ShortGeocoderAddress struct {
+	ID             uint32
+	Address        string
+	Building       string
+	Street1562ID   uint32
+	Street1562Name string
+}
+
+func FullToShortAddress(full *geocoder.FullAddress) (*ShortGeocoderAddress, error) {
+	if full.Street1562 == nil {
+		return nil, errors.New("Address without Street1562")
+	}
+	short := &ShortGeocoderAddress{
+		ID:             full.Address.ID,
+		Address:        fmt.Sprintf("%s %s", full.Street1562.Name, full.Address.GetBuildingAsString()),
+		Building:       full.Address.GetBuildingAsString(),
+		Street1562ID:   full.Street1562.ID,
+		Street1562Name: full.Street1562.Name,
+	}
+	return short, nil
+}
+
+type TakeNextResponse struct {
+	Address         *models.AddressAr
+	GeocoderAddress *ShortGeocoderAddress
+}
+
 // TakeNext takes the oldest taken address and updates its TakenAt field to the present moment
 func (service *AddressService) TakeNext(w http.ResponseWriter, r *http.Request) {
 	address := &models.AddressAr{}
@@ -82,7 +110,23 @@ func (service *AddressService) TakeNext(w http.ResponseWriter, r *http.Request) 
 		utils.ErrorInternal(w, err.Error())
 		return
 	}
-	utils.Success(w, address)
+
+	geocoderAddress := service.geo.AddressByID(uint32(address.ID))
+	if geocoderAddress == nil {
+		utils.ErrorNotFound(w, "Address does not exist in geocoder")
+		return
+	}
+
+	short, err := FullToShortAddress(geocoderAddress)
+	if err != nil {
+		utils.ErrorNotFound(w, err.Error())
+		return
+	}
+
+	utils.Success(w, TakeNextResponse{
+		Address:         address,
+		GeocoderAddress: short,
+	})
 }
 
 type AddressUpdatePayload struct {
