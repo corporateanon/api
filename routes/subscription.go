@@ -9,15 +9,18 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/my1562/api/models"
 	"github.com/my1562/api/utils"
+	"github.com/my1562/geocoder"
 )
 
 type SubscriptionService struct {
-	db *gorm.DB
+	db  *gorm.DB
+	geo *geocoder.Geocoder
 }
 
-func NewSubscriptionService(db *gorm.DB) *SubscriptionService {
+func NewSubscriptionService(db *gorm.DB, geo *geocoder.Geocoder) *SubscriptionService {
 	return &SubscriptionService{
-		db: db,
+		db:  db,
+		geo: geo,
 	}
 }
 
@@ -41,6 +44,11 @@ func (service *SubscriptionService) CreateSubscription(w http.ResponseWriter, r 
 	if payload.AddressArID <= 0 {
 		utils.ErrorBadRequest(w, "AddressArID <= 0")
 		return
+	}
+
+	addressFromGeocoder := service.geo.AddressByID(uint32(payload.AddressArID))
+	if addressFromGeocoder == nil {
+		utils.ErrorBadRequest(w, "AddressArID not found")
 	}
 
 	subscription := &models.Subscription{

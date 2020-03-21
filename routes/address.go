@@ -11,15 +11,18 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/my1562/api/models"
 	"github.com/my1562/api/utils"
+	"github.com/my1562/geocoder"
 )
 
 type AddressService struct {
-	db *gorm.DB
+	db  *gorm.DB
+	geo *geocoder.Geocoder
 }
 
-func NewAddressService(db *gorm.DB) *AddressService {
+func NewAddressService(db *gorm.DB, geo *geocoder.Geocoder) *AddressService {
 	return &AddressService{
-		db: db,
+		db:  db,
+		geo: geo,
 	}
 }
 
@@ -127,4 +130,51 @@ func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.Success(w, address)
+}
+
+type GeocodeResponseAddress struct {
+	Distance      float64
+	AddressString string
+}
+type GeocodeResponse struct {
+	Addresses []GeocodeResponseAddress
+}
+
+func formatGeocodingResult(res *geocoder.ReverseGeocodingResult) string {
+	street := res.FullAddress.Street1562.Name
+	building := res.FullAddress.Address.Number
+	return fmt.Sprintf("%s %d", street, building)
+}
+
+func (service *AddressService) Geocode(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	var err error
+
+	lat, err := strconv.ParseFloat(vars["lat"], 64)
+	if err != nil {
+		utils.ErrorBadRequest(w, err.Error())
+		return
+	}
+
+	lng, err := strconv.ParseFloat(vars["lng"], 64)
+	if err != nil {
+		utils.ErrorBadRequest(w, err.Error())
+		return
+	}
+
+	accuracy, err := strconv.ParseFloat(vars["accuracy"], 64)
+	if err != nil {
+		utils.ErrorBadRequest(w, err.Error())
+		return
+	}
+	result := service.geo.ReverseGeocode(lat, lng, accuracy, 10)
+
+	response := GeocodeResponse{Addresses: []GeocodeResponseAddress{}}
+	for _, item := range result {
+		response.Addresses = append(response.Addresses, GeocodeResponseAddress{
+			Distance:      item.Distance,
+			AddressString: formatGeocodingResult(item),
+		})
+	}
+	utils.Success(w, response)
 }

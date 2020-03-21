@@ -10,30 +10,6 @@ import (
 	"github.com/my1562/api/config"
 )
 
-type Subscription struct {
-	gorm.Model
-	ChatID      int64 `gorm:"unique_index:idx_addr_chat"`
-	AddressArID int64 `gorm:"unique_index:idx_addr_chat"`
-}
-
-type AddressArCheckStatus string
-
-const (
-	AddressStatusNoWork AddressArCheckStatus = "nowork"
-	AddressStatusWork                        = "work"
-	AddressStatusInit                        = "init"
-)
-
-type AddressAr struct {
-	gorm.Model
-	CheckStatus    AddressArCheckStatus
-	ServiceMessage string `gorm:"size:2048"`
-	Hash           string
-	TakenAt        time.Time
-	CheckedAt      time.Time
-	Subscriptions  []Subscription `gorm:"foreignkey:AddressArID"`
-}
-
 //NewDatabase creates database connection
 func NewDatabase(conf *config.Config) (*gorm.DB, error) {
 	var db *gorm.DB

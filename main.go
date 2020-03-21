@@ -10,6 +10,7 @@ import (
 	"github.com/my1562/api/models"
 	"github.com/my1562/api/router"
 	"github.com/my1562/api/routes"
+	"github.com/my1562/geocoder"
 	"go.uber.org/dig"
 )
 
@@ -21,6 +22,12 @@ func main() {
 	c.Provide(routes.NewAddressService)
 	c.Provide(router.NewRouter)
 	c.Provide(models.NewDatabase)
+	c.Provide(
+		func(conf *config.Config) (*geocoder.Geocoder, error) {
+			geo := geocoder.NewGeocoder()
+			geo.BuildSpatialIndex(100)
+			return geo, nil
+		})
 
 	err := c.Invoke(func(r *mux.Router, config *config.Config) {
 		fmt.Printf("Listening at: %s", config.Port)
