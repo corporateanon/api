@@ -11,6 +11,7 @@ type Config struct {
 	Port         string
 	DBDriver     string
 	DBConnection string
+	RabbitmqURL  string
 }
 
 func NewConfig() *Config {
@@ -31,6 +32,7 @@ func NewConfig() *Config {
 		Port:         os.Getenv("PORT"),
 		DBDriver:     os.Getenv("DB_DRIVER"),
 		DBConnection: os.Getenv("DB_CONNECTION"),
+		RabbitmqURL:  os.Getenv("RABBITMQ_URL"),
 	}
 
 	if config.Port == "" {

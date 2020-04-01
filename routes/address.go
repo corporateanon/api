@@ -11,19 +11,22 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"github.com/my1562/api/models"
+	"github.com/my1562/api/notifier"
 	"github.com/my1562/api/utils"
 	"github.com/my1562/geocoder"
 )
 
 type AddressService struct {
-	db  *gorm.DB
-	geo *geocoder.Geocoder
+	db       *gorm.DB
+	geo      *geocoder.Geocoder
+	notifier *notifier.Notifier
 }
 
-func NewAddressService(db *gorm.DB, geo *geocoder.Geocoder) *AddressService {
+func NewAddressService(db *gorm.DB, geo *geocoder.Geocoder, notifier *notifier.Notifier) *AddressService {
 	return &AddressService{
-		db:  db,
-		geo: geo,
+		db:       db,
+		geo:      geo,
+		notifier: notifier,
 	}
 }
 
@@ -155,7 +158,10 @@ func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	address := &models.AddressAr{}
-	err = service.db.Where(id).First(address).Error
+	err = service.db.
+		Where(id).
+		Preload("Subscriptions").
+		First(address).Error
 	if err != nil {
 		utils.ErrorInternal(w, err.Error())
 		return
@@ -164,6 +170,11 @@ func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorNotFound(w, "Not found")
 		return
 	}
+
+	needsNotification := address.Hash != payload.Hash &&
+		address.Subscriptions != nil &&
+		len(address.Subscriptions) > 0
+
 	address.CheckStatus = payload.CheckStatus
 	address.ServiceMessage = payload.ServiceMessage
 	address.Hash = payload.Hash
@@ -174,6 +185,16 @@ func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.Success(w, address)
+
+	if needsNotification {
+		chatIDs := make([]int64, len(address.Subscriptions))
+		for i, subscription := range address.Subscriptions {
+			chatIDs[i] = subscription.ChatID
+		}
+		geocoderAddress := service.geo.AddressByID(uint32(address.ID))
+		service.notifier.NotifyServiceMessageChange(chatIDs, payload.ServiceMessage, formatAddress(geocoderAddress))
+	}
+
 }
 
 type GeocodeResponseAddress struct {
@@ -185,6 +206,14 @@ type GeocodeResponse struct {
 	Addresses []GeocodeResponseAddress
 }
 
+func formatAddress(addr *geocoder.FullAddress) string {
+	bld := addr.Address.GetBuildingAsString()
+	name := addr.StreetAR.NameRu
+	t := addr.StreetAR.TypeRu
+	return t + " " + name + " " + bld
+}
+
+//TODO: use formatAddress
 func formatGeocodingResult(res *geocoder.ReverseGeocodingResult) string {
 	street := res.FullAddress.Street1562.Name
 	building := res.FullAddress.Address.Number
