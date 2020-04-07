@@ -192,7 +192,7 @@ func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
 			chatIDs[i] = subscription.ChatID
 		}
 		geocoderAddress := service.geo.AddressByID(uint32(address.ID))
-		service.notifier.NotifyServiceMessageChange(chatIDs, payload.ServiceMessage, formatAddress(geocoderAddress))
+		service.notifier.NotifyServiceMessageChange(chatIDs, payload.ServiceMessage, formatAddress(geocoderAddress), address.CheckStatus)
 	}
 
 }

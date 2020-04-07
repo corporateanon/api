@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/my1562/api/config"
+	"github.com/my1562/api/models"
 	"github.com/streadway/amqp"
 )
 
@@ -39,10 +40,22 @@ func NewNotifier(config *config.Config) *Notifier {
 	}
 }
 
-func (me *Notifier) NotifyServiceMessageChange(chatIDs []int64, message string, addressString string) error {
+func (me *Notifier) NotifyServiceMessageChange(chatIDs []int64, message string, addressString string, addressStatus models.AddressArCheckStatus) error {
 	var err error
 
-	fullMessageText := addressString + ":\n\n" + message
+	introduction := ""
+	emojiIcon := ""
+
+	if addressStatus == models.AddressStatusNoWork {
+		introduction = "Работы не проводятся"
+		emojiIcon = "✅"
+	}
+	if addressStatus == models.AddressStatusWork {
+		introduction = ""
+		emojiIcon = "🛠"
+	}
+
+	fullMessageText := emojiIcon + " " + addressString + ": " + introduction + "\n\n" + message
 
 	for _, chatID := range chatIDs {
 		body, err := json.Marshal(map[string]interface{}{
