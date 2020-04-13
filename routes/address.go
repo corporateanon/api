@@ -253,3 +253,31 @@ func (service *AddressService) Geocode(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.Success(w, response)
 }
+
+func (service *AddressService) GeocodeByID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	var err error
+
+	id, err := strconv.ParseInt(vars["id"], 10, 64)
+	if err != nil {
+		utils.ErrorBadRequest(w, err.Error())
+		return
+	}
+
+	result := service.geo.AddressByID(uint32(id))
+	if result == nil {
+		utils.ErrorNotFound(w, "No such address")
+		return
+	}
+	shortAddress, err := FullToShortAddress(result)
+	if err != nil {
+		utils.ErrorNotFound(w, err.Error())
+		return
+	}
+
+	response := struct {
+		Address *ShortGeocoderAddress
+	}{Address: shortAddress}
+
+	utils.Success(w, response)
+}
