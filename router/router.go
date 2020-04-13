@@ -24,6 +24,9 @@ func NewRouter(
 	r.HandleFunc("/address/geocode/{lat}/{lng}/{accuracy}", addressService.Geocode).
 		Methods("GET")
 
+	r.HandleFunc("/address/geocode/lookup/{id}", addressService.GeocodeByID).
+		Methods("GET")
+
 	r.HandleFunc("/address/{id}", addressService.GetByID).
 		Methods("GET")
 
