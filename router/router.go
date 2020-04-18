@@ -21,6 +21,9 @@ func NewRouter(
 	r.HandleFunc("/address/count", addressService.GetTotalCount).
 		Methods("GET")
 
+	r.HandleFunc("/address", addressService.GetList).
+		Methods("GET")
+
 	r.HandleFunc("/address/geocode/{lat}/{lng}/{accuracy}", addressService.Geocode).
 		Methods("GET")
 

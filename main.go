@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/my1562/api/config"
 	"github.com/my1562/api/models"
@@ -35,7 +36,7 @@ func main() {
 		fmt.Printf("Listening at: %s", config.Port)
 		srv := &http.Server{
 			Addr:           ":" + config.Port,
-			Handler:        r,
+			Handler:        handlers.CORS(handlers.ExposedHeaders([]string{"Content-Range"}))(r),
 			ReadTimeout:    10 * time.Second,
 			WriteTimeout:   10 * time.Second,
 			MaxHeaderBytes: 1 << 20,

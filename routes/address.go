@@ -62,6 +62,56 @@ func (service *AddressService) GetTotalCount(w http.ResponseWriter, r *http.Requ
 	utils.Success(w, cnt)
 }
 
+func (service *AddressService) GetList(w http.ResponseWriter, r *http.Request) {
+	type ExtendedAddress struct {
+		models.AddressAr
+		AddressDetails *ShortGeocoderAddress
+	}
+	addresses := []models.AddressAr{}
+	err := service.db.Order("created_at desc").Find(&addresses).Error
+	if err != nil {
+		utils.ErrorInternal(w, err.Error())
+		return
+	}
+
+	var addressesTotal int
+	err = service.db.Model(&models.AddressAr{}).Count(&addressesTotal).Error
+	if err != nil {
+		utils.ErrorInternal(w, err.Error())
+		return
+	}
+
+	contentRange := fmt.Sprintf("address 0-%d/%d", addressesTotal, addressesTotal)
+	w.Header().Add("content-range", contentRange)
+
+	extendedAddresses := make([]ExtendedAddress, len(addresses))
+	for i, address := range addresses {
+
+		fullAddress := service.geo.AddressByID(uint32(address.ID))
+
+		if fullAddress == nil {
+			extendedAddresses[i] = ExtendedAddress{
+				AddressAr: address,
+			}
+			continue
+		}
+
+		shortAddress, err := FullToShortAddress(fullAddress)
+		if err != nil {
+			extendedAddresses[i] = ExtendedAddress{
+				AddressAr: address,
+			}
+			continue
+		}
+		extendedAddresses[i] = ExtendedAddress{
+			AddressAr:      address,
+			AddressDetails: shortAddress,
+		}
+	}
+
+	utils.Success(w, extendedAddresses)
+}
+
 type ShortGeocoderAddress struct {
 	ID             uint32
 	Address        string
@@ -76,7 +126,7 @@ func FullToShortAddress(full *geocoder.FullAddress) (*ShortGeocoderAddress, erro
 	}
 	short := &ShortGeocoderAddress{
 		ID:             full.Address.ID,
-		Address:        fmt.Sprintf("%s %s", full.Street1562.Name, full.Address.GetBuildingAsString()),
+		Address:        formatAddress(full),
 		Building:       full.Address.GetBuildingAsString(),
 		Street1562ID:   full.Street1562.ID,
 		Street1562Name: full.Street1562.Name,
@@ -194,7 +244,6 @@ func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
 		geocoderAddress := service.geo.AddressByID(uint32(address.ID))
 		service.notifier.NotifyServiceMessageChange(chatIDs, payload.ServiceMessage, formatAddress(geocoderAddress), address.CheckStatus)
 	}
-
 }
 
 type GeocodeResponseAddress struct {
@@ -213,11 +262,8 @@ func formatAddress(addr *geocoder.FullAddress) string {
 	return t + " " + name + " " + bld
 }
 
-//TODO: use formatAddress
 func formatGeocodingResult(res *geocoder.ReverseGeocodingResult) string {
-	street := res.FullAddress.Street1562.Name
-	building := res.FullAddress.Address.Number
-	return fmt.Sprintf("%s %d", street, building)
+	return formatAddress(res.FullAddress)
 }
 
 func (service *AddressService) Geocode(w http.ResponseWriter, r *http.Request) {
