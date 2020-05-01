@@ -30,6 +30,9 @@ func ErrorNotFound(w http.ResponseWriter, message string) {
 	w.WriteHeader(http.StatusNotFound)
 	json.NewEncoder(w).Encode(map[string]interface{}{"error": message})
 }
+func GErrorNotFound(c *gin.Context, message string) {
+	c.JSON(http.StatusNotFound, gin.H{"error": message})
+}
 func ErrorInternal(w http.ResponseWriter, message string) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusInternalServerError)

@@ -20,9 +20,6 @@ func NewRouter(
 	r.HandleFunc("/address/{id}", addressService.GetByID).
 		Methods("GET")
 
-	r.HandleFunc("/address/take", addressService.TakeNext).
-		Methods("POST")
-
 	r.HandleFunc("/address/{id}", addressService.Update).
 		Methods("PUT").
 		Headers("Content-Type", "application/json")
