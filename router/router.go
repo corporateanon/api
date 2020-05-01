@@ -11,19 +11,6 @@ func NewRouter(
 ) *mux.Router {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/subscription", subscriptionService.CreateSubscription).
-		Methods("POST").
-		Headers("Content-Type", "application/json")
-
-	r.HandleFunc("/chat/{chatID}/subscription", subscriptionService.GetByChatID).
-		Methods("GET")
-
-	r.HandleFunc("/address/count", addressService.GetTotalCount).
-		Methods("GET")
-
-	r.HandleFunc("/address", addressService.GetList).
-		Methods("GET")
-
 	r.HandleFunc("/address/geocode/{lat}/{lng}/{accuracy}", addressService.Geocode).
 		Methods("GET")
 

@@ -51,66 +51,55 @@ func (service *AddressService) GetByID(w http.ResponseWriter, r *http.Request) {
 	utils.Success(w, address)
 }
 
-func (service *AddressService) GetTotalCount(w http.ResponseWriter, r *http.Request) {
-	address := &models.AddressAr{}
-	var cnt int64 = 0
-	err := service.db.Model(address).Count(&cnt).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
-	utils.Success(w, cnt)
-}
+// func (service *AddressService) GetList(w http.ResponseWriter, r *http.Request) {
+// 	type ExtendedAddress struct {
+// 		models.AddressAr
+// 		AddressDetails *ShortGeocoderAddress
+// 	}
+// 	addresses := []models.AddressAr{}
+// 	err := service.db.Order("created_at desc").Find(&addresses).Error
+// 	if err != nil {
+// 		utils.ErrorInternal(w, err.Error())
+// 		return
+// 	}
 
-func (service *AddressService) GetList(w http.ResponseWriter, r *http.Request) {
-	type ExtendedAddress struct {
-		models.AddressAr
-		AddressDetails *ShortGeocoderAddress
-	}
-	addresses := []models.AddressAr{}
-	err := service.db.Order("created_at desc").Find(&addresses).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
+// 	var addressesTotal int
+// 	err = service.db.Model(&models.AddressAr{}).Count(&addressesTotal).Error
+// 	if err != nil {
+// 		utils.ErrorInternal(w, err.Error())
+// 		return
+// 	}
 
-	var addressesTotal int
-	err = service.db.Model(&models.AddressAr{}).Count(&addressesTotal).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
+// 	contentRange := fmt.Sprintf("address 0-%d/%d", addressesTotal, addressesTotal)
+// 	w.Header().Add("content-range", contentRange)
 
-	contentRange := fmt.Sprintf("address 0-%d/%d", addressesTotal, addressesTotal)
-	w.Header().Add("content-range", contentRange)
+// 	extendedAddresses := make([]ExtendedAddress, len(addresses))
+// 	for i, address := range addresses {
 
-	extendedAddresses := make([]ExtendedAddress, len(addresses))
-	for i, address := range addresses {
+// 		fullAddress := service.geo.AddressByID(uint32(address.ID))
 
-		fullAddress := service.geo.AddressByID(uint32(address.ID))
+// 		if fullAddress == nil {
+// 			extendedAddresses[i] = ExtendedAddress{
+// 				AddressAr: address,
+// 			}
+// 			continue
+// 		}
 
-		if fullAddress == nil {
-			extendedAddresses[i] = ExtendedAddress{
-				AddressAr: address,
-			}
-			continue
-		}
+// 		shortAddress, err := FullToShortAddress(fullAddress)
+// 		if err != nil {
+// 			extendedAddresses[i] = ExtendedAddress{
+// 				AddressAr: address,
+// 			}
+// 			continue
+// 		}
+// 		extendedAddresses[i] = ExtendedAddress{
+// 			AddressAr:      address,
+// 			AddressDetails: shortAddress,
+// 		}
+// 	}
 
-		shortAddress, err := FullToShortAddress(fullAddress)
-		if err != nil {
-			extendedAddresses[i] = ExtendedAddress{
-				AddressAr: address,
-			}
-			continue
-		}
-		extendedAddresses[i] = ExtendedAddress{
-			AddressAr:      address,
-			AddressDetails: shortAddress,
-		}
-	}
-
-	utils.Success(w, extendedAddresses)
-}
+// 	utils.Success(w, extendedAddresses)
+// }
 
 type ShortGeocoderAddress struct {
 	ID             uint32
