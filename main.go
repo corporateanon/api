@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/my1562/api/config"
@@ -23,6 +24,7 @@ func main() {
 	c.Provide(routes.NewSubscriptionService)
 	c.Provide(routes.NewAddressService)
 	c.Provide(router.NewRouter)
+	c.Provide(router.NewGinRouter)
 	c.Provide(models.NewDatabase)
 	c.Provide(notifier.NewNotifier)
 	c.Provide(
@@ -32,11 +34,11 @@ func main() {
 			return geo, nil
 		})
 
-	err := c.Invoke(func(r *mux.Router, config *config.Config) error {
+	err := c.Invoke(func(r *mux.Router, config *config.Config, grouter *gin.Engine) error {
 		fmt.Printf("Listening at: %s", config.Port)
 		srv := &http.Server{
 			Addr:           ":" + config.Port,
-			Handler:        handlers.CORS(handlers.ExposedHeaders([]string{"Content-Range"}))(r),
+			Handler:        handlers.CORS(handlers.ExposedHeaders([]string{"Content-Range"}))(grouter),
 			ReadTimeout:    10 * time.Second,
 			WriteTimeout:   10 * time.Second,
 			MaxHeaderBytes: 1 << 20,
