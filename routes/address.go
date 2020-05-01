@@ -51,56 +51,6 @@ func (service *AddressService) GetByID(w http.ResponseWriter, r *http.Request) {
 	utils.Success(w, address)
 }
 
-// func (service *AddressService) GetList(w http.ResponseWriter, r *http.Request) {
-// 	type ExtendedAddress struct {
-// 		models.AddressAr
-// 		AddressDetails *ShortGeocoderAddress
-// 	}
-// 	addresses := []models.AddressAr{}
-// 	err := service.db.Order("created_at desc").Find(&addresses).Error
-// 	if err != nil {
-// 		utils.ErrorInternal(w, err.Error())
-// 		return
-// 	}
-
-// 	var addressesTotal int
-// 	err = service.db.Model(&models.AddressAr{}).Count(&addressesTotal).Error
-// 	if err != nil {
-// 		utils.ErrorInternal(w, err.Error())
-// 		return
-// 	}
-
-// 	contentRange := fmt.Sprintf("address 0-%d/%d", addressesTotal, addressesTotal)
-// 	w.Header().Add("content-range", contentRange)
-
-// 	extendedAddresses := make([]ExtendedAddress, len(addresses))
-// 	for i, address := range addresses {
-
-// 		fullAddress := service.geo.AddressByID(uint32(address.ID))
-
-// 		if fullAddress == nil {
-// 			extendedAddresses[i] = ExtendedAddress{
-// 				AddressAr: address,
-// 			}
-// 			continue
-// 		}
-
-// 		shortAddress, err := FullToShortAddress(fullAddress)
-// 		if err != nil {
-// 			extendedAddresses[i] = ExtendedAddress{
-// 				AddressAr: address,
-// 			}
-// 			continue
-// 		}
-// 		extendedAddresses[i] = ExtendedAddress{
-// 			AddressAr:      address,
-// 			AddressDetails: shortAddress,
-// 		}
-// 	}
-
-// 	utils.Success(w, extendedAddresses)
-// }
-
 type ShortGeocoderAddress struct {
 	ID             uint32
 	Address        string
@@ -121,54 +71,6 @@ func FullToShortAddress(full *geocoder.FullAddress) (*ShortGeocoderAddress, erro
 		Street1562Name: full.Street1562.Name,
 	}
 	return short, nil
-}
-
-type TakeNextResponse struct {
-	Address         *models.AddressAr
-	GeocoderAddress *ShortGeocoderAddress
-}
-
-// TakeNext takes the oldest taken address and updates its TakenAt field to the present moment
-func (service *AddressService) TakeNext(w http.ResponseWriter, r *http.Request) {
-	address := &models.AddressAr{}
-	err := service.db.Order("taken_at ASC").First(address).Error
-	if err != nil {
-		if err.Error() == "record not found" {
-			utils.ErrorNotFound(w, "No addresses in database")
-			return
-		} else {
-			utils.ErrorInternal(w, err.Error())
-			return
-		}
-	}
-	if address.ID == 0 {
-		utils.ErrorNotFound(w, "No addresses in database")
-		return
-	}
-
-	address.TakenAt = time.Now()
-	err = service.db.Save(address).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
-
-	geocoderAddress := service.geo.AddressByID(uint32(address.ID))
-	if geocoderAddress == nil {
-		utils.ErrorNotFound(w, "Address does not exist in geocoder")
-		return
-	}
-
-	short, err := FullToShortAddress(geocoderAddress)
-	if err != nil {
-		utils.ErrorNotFound(w, err.Error())
-		return
-	}
-
-	utils.Success(w, TakeNextResponse{
-		Address:         address,
-		GeocoderAddress: short,
-	})
 }
 
 type AddressUpdatePayload struct {

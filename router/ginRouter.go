@@ -18,6 +18,8 @@ func NewGinRouter(
 
 	route.GET("/address", addressService.AddressGetList)
 
+	route.POST("/address/take", addressService.AddressTakeNext)
+
 	// r.HandleFunc("/address/geocode/{lat}/{lng}/{accuracy}", addressService.Geocode).
 	// 	Methods("GET")
 
@@ -26,9 +28,6 @@ func NewGinRouter(
 
 	// r.HandleFunc("/address/{id}", addressService.GetByID).
 	// 	Methods("GET")
-
-	// r.HandleFunc("/address/take", addressService.TakeNext).
-	// 	Methods("POST")
 
 	// r.HandleFunc("/address/{id}", addressService.Update).
 	// 	Methods("PUT").

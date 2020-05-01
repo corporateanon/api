@@ -23,7 +23,7 @@ func ApplyListQueryParams(db *gorm.DB, model interface{}, params *utils.ListQuer
 
 func GetResultRange(db *gorm.DB, model interface{}, params *utils.ListQueryParams, resourceName string) (string, error) {
 	var total int
-	if err := db.Model(&model).Count(&total).Error; err != nil {
+	if err := db.Model(model).Count(&total).Error; err != nil {
 		return "", err
 	}
 
