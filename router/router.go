@@ -17,9 +17,6 @@ func NewRouter(
 	r.HandleFunc("/address/geocode/lookup/{id}", addressService.GeocodeByID).
 		Methods("GET")
 
-	r.HandleFunc("/address/{id}", addressService.GetByID).
-		Methods("GET")
-
 	r.HandleFunc("/address/{id}", addressService.Update).
 		Methods("PUT").
 		Headers("Content-Type", "application/json")
