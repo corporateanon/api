@@ -13,12 +13,10 @@ func NewGinRouter(
 
 	route.POST("/subscription", subscriptionService.CreateSubscription)
 	route.GET("/chat/:ChatID/subscription", subscriptionService.GetSubscriptionsByChatID)
-
-	route.GET("/address/count", addressService.AddressGetTotalCount)
-
 	route.GET("/address", addressService.AddressGetList)
-
-	route.POST("/address/take", addressService.AddressTakeNext)
+	route.GET("/address-count", addressService.AddressGetTotalCount)
+	route.POST("/address-take", addressService.AddressTakeNext)
+	route.GET("/address/:id", addressService.AddressGetByID)
 
 	// r.HandleFunc("/address/geocode/{lat}/{lng}/{accuracy}", addressService.Geocode).
 	// 	Methods("GET")

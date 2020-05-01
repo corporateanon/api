@@ -30,27 +30,6 @@ func NewAddressService(db *gorm.DB, geo *geocoder.Geocoder, notifier *notifier.N
 	}
 }
 
-func (service *AddressService) GetByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.ParseUint(vars["id"], 10, 64)
-	if err != nil {
-		utils.ErrorBadRequest(w, err.Error())
-		return
-	}
-	address := &models.AddressAr{}
-
-	service.db.
-		Preload("Subscriptions").
-		Where(id).
-		First(address)
-	if address.ID == 0 {
-		utils.ErrorNotFound(w, "Address not found")
-		return
-	}
-
-	utils.Success(w, address)
-}
-
 type ShortGeocoderAddress struct {
 	ID             uint32
 	Address        string
