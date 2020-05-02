@@ -1,18 +1,11 @@
 package routes
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
-	"net/http"
-	"strconv"
-	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"github.com/my1562/api/models"
 	"github.com/my1562/api/notifier"
-	"github.com/my1562/api/utils"
 	"github.com/my1562/geocoder"
 )
 
@@ -28,88 +21,6 @@ func NewAddressService(db *gorm.DB, geo *geocoder.Geocoder, notifier *notifier.N
 		geo:      geo,
 		notifier: notifier,
 	}
-}
-
-func (service *AddressService) GetByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.ParseUint(vars["id"], 10, 64)
-	if err != nil {
-		utils.ErrorBadRequest(w, err.Error())
-		return
-	}
-	address := &models.AddressAr{}
-
-	service.db.
-		Preload("Subscriptions").
-		Where(id).
-		First(address)
-	if address.ID == 0 {
-		utils.ErrorNotFound(w, "Address not found")
-		return
-	}
-
-	utils.Success(w, address)
-}
-
-func (service *AddressService) GetTotalCount(w http.ResponseWriter, r *http.Request) {
-	address := &models.AddressAr{}
-	var cnt int64 = 0
-	err := service.db.Model(address).Count(&cnt).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
-	utils.Success(w, cnt)
-}
-
-func (service *AddressService) GetList(w http.ResponseWriter, r *http.Request) {
-	type ExtendedAddress struct {
-		models.AddressAr
-		AddressDetails *ShortGeocoderAddress
-	}
-	addresses := []models.AddressAr{}
-	err := service.db.Order("created_at desc").Find(&addresses).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
-
-	var addressesTotal int
-	err = service.db.Model(&models.AddressAr{}).Count(&addressesTotal).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
-
-	contentRange := fmt.Sprintf("address 0-%d/%d", addressesTotal, addressesTotal)
-	w.Header().Add("content-range", contentRange)
-
-	extendedAddresses := make([]ExtendedAddress, len(addresses))
-	for i, address := range addresses {
-
-		fullAddress := service.geo.AddressByID(uint32(address.ID))
-
-		if fullAddress == nil {
-			extendedAddresses[i] = ExtendedAddress{
-				AddressAr: address,
-			}
-			continue
-		}
-
-		shortAddress, err := FullToShortAddress(fullAddress)
-		if err != nil {
-			extendedAddresses[i] = ExtendedAddress{
-				AddressAr: address,
-			}
-			continue
-		}
-		extendedAddresses[i] = ExtendedAddress{
-			AddressAr:      address,
-			AddressDetails: shortAddress,
-		}
-	}
-
-	utils.Success(w, extendedAddresses)
 }
 
 type ShortGeocoderAddress struct {
@@ -134,125 +45,10 @@ func FullToShortAddress(full *geocoder.FullAddress) (*ShortGeocoderAddress, erro
 	return short, nil
 }
 
-type TakeNextResponse struct {
-	Address         *models.AddressAr
-	GeocoderAddress *ShortGeocoderAddress
-}
-
-// TakeNext takes the oldest taken address and updates its TakenAt field to the present moment
-func (service *AddressService) TakeNext(w http.ResponseWriter, r *http.Request) {
-	address := &models.AddressAr{}
-	err := service.db.Order("taken_at ASC").First(address).Error
-	if err != nil {
-		if err.Error() == "record not found" {
-			utils.ErrorNotFound(w, "No addresses in database")
-			return
-		} else {
-			utils.ErrorInternal(w, err.Error())
-			return
-		}
-	}
-	if address.ID == 0 {
-		utils.ErrorNotFound(w, "No addresses in database")
-		return
-	}
-
-	address.TakenAt = time.Now()
-	err = service.db.Save(address).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
-
-	geocoderAddress := service.geo.AddressByID(uint32(address.ID))
-	if geocoderAddress == nil {
-		utils.ErrorNotFound(w, "Address does not exist in geocoder")
-		return
-	}
-
-	short, err := FullToShortAddress(geocoderAddress)
-	if err != nil {
-		utils.ErrorNotFound(w, err.Error())
-		return
-	}
-
-	utils.Success(w, TakeNextResponse{
-		Address:         address,
-		GeocoderAddress: short,
-	})
-}
-
 type AddressUpdatePayload struct {
 	CheckStatus    models.AddressArCheckStatus
 	ServiceMessage string
 	Hash           string
-}
-
-func (service *AddressService) Update(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.ParseUint(vars["id"], 10, 64)
-	if err != nil {
-		utils.ErrorBadRequest(w, err.Error())
-		return
-	}
-
-	var payload AddressUpdatePayload
-	err = json.NewDecoder(r.Body).Decode(&payload)
-	if err != nil {
-		utils.ErrorBadRequest(w, err.Error())
-		return
-	}
-	if payload.CheckStatus != models.AddressStatusNoWork && payload.CheckStatus != models.AddressStatusWork {
-		utils.ErrorBadRequest(w, fmt.Sprintf("CheckStatus may be either '%s' or '%s'", models.AddressStatusNoWork, models.AddressStatusWork))
-		return
-	}
-
-	address := &models.AddressAr{}
-	err = service.db.
-		Where(id).
-		Preload("Subscriptions").
-		First(address).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
-	if address.ID == 0 {
-		utils.ErrorNotFound(w, "Not found")
-		return
-	}
-
-	needsNotification := address.Hash != payload.Hash &&
-		address.Subscriptions != nil &&
-		len(address.Subscriptions) > 0
-
-	address.CheckStatus = payload.CheckStatus
-	address.ServiceMessage = payload.ServiceMessage
-	address.Hash = payload.Hash
-	address.CheckedAt = time.Now()
-	err = service.db.Save(address).Error
-	if err != nil {
-		utils.ErrorInternal(w, err.Error())
-		return
-	}
-	utils.Success(w, address)
-
-	if needsNotification {
-		chatIDs := make([]int64, len(address.Subscriptions))
-		for i, subscription := range address.Subscriptions {
-			chatIDs[i] = subscription.ChatID
-		}
-		geocoderAddress := service.geo.AddressByID(uint32(address.ID))
-		service.notifier.NotifyServiceMessageChange(chatIDs, payload.ServiceMessage, formatAddress(geocoderAddress), address.CheckStatus)
-	}
-}
-
-type GeocodeResponseAddress struct {
-	ID            uint32
-	Distance      float64
-	AddressString string
-}
-type GeocodeResponse struct {
-	Addresses []GeocodeResponseAddress
 }
 
 func formatAddress(addr *geocoder.FullAddress) string {
@@ -264,66 +60,4 @@ func formatAddress(addr *geocoder.FullAddress) string {
 
 func formatGeocodingResult(res *geocoder.ReverseGeocodingResult) string {
 	return formatAddress(res.FullAddress)
-}
-
-func (service *AddressService) Geocode(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	var err error
-
-	lat, err := strconv.ParseFloat(vars["lat"], 64)
-	if err != nil {
-		utils.ErrorBadRequest(w, err.Error())
-		return
-	}
-
-	lng, err := strconv.ParseFloat(vars["lng"], 64)
-	if err != nil {
-		utils.ErrorBadRequest(w, err.Error())
-		return
-	}
-
-	accuracy, err := strconv.ParseFloat(vars["accuracy"], 64)
-	if err != nil {
-		utils.ErrorBadRequest(w, err.Error())
-		return
-	}
-	result := service.geo.ReverseGeocode(lat, lng, accuracy, 10)
-
-	response := GeocodeResponse{Addresses: []GeocodeResponseAddress{}}
-	for _, item := range result {
-		response.Addresses = append(response.Addresses, GeocodeResponseAddress{
-			ID:            item.FullAddress.Address.ID,
-			Distance:      item.Distance,
-			AddressString: formatGeocodingResult(item),
-		})
-	}
-	utils.Success(w, response)
-}
-
-func (service *AddressService) GeocodeByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	var err error
-
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
-	if err != nil {
-		utils.ErrorBadRequest(w, err.Error())
-		return
-	}
-
-	result := service.geo.AddressByID(uint32(id))
-	if result == nil {
-		utils.ErrorNotFound(w, "No such address")
-		return
-	}
-	shortAddress, err := FullToShortAddress(result)
-	if err != nil {
-		utils.ErrorNotFound(w, err.Error())
-		return
-	}
-
-	response := struct {
-		Address *ShortGeocoderAddress
-	}{Address: shortAddress}
-
-	utils.Success(w, response)
 }
