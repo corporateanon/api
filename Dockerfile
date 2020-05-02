@@ -15,6 +15,7 @@ RUN pwd
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/app /app
+ENV GIN_MODE=release
 ENTRYPOINT ./app
 LABEL Name=api Version=0.0.1
 EXPOSE 8000

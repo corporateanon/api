@@ -35,5 +35,5 @@ func (service *AddressService) AddressGetByID(c *gin.Context) {
 		Result: address,
 	}
 
-	utils.GSuccess(c, response)
+	utils.GSuccess(c, &response)
 }

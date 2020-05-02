@@ -49,8 +49,8 @@ func (service *AddressService) AddressTakeNext(c *gin.Context) {
 		return
 	}
 
-	response := &AddressTakeNextResponse{}
+	response := AddressTakeNextResponse{}
 	response.Result.Address = address
 	response.Result.GeocoderAddress = short
-	utils.GSuccess(c, response)
+	utils.GSuccess(c, &response)
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"github.com/my1562/api/config"
 	"github.com/my1562/api/models"
 	"github.com/my1562/api/notifier"
@@ -23,7 +22,6 @@ func main() {
 	c.Provide(config.NewConfig)
 	c.Provide(routes.NewSubscriptionService)
 	c.Provide(routes.NewAddressService)
-	c.Provide(router.NewRouter)
 	c.Provide(router.NewGinRouter)
 	c.Provide(models.NewDatabase)
 	c.Provide(notifier.NewNotifier)
@@ -34,7 +32,7 @@ func main() {
 			return geo, nil
 		})
 
-	err := c.Invoke(func(r *mux.Router, config *config.Config, grouter *gin.Engine) error {
+	err := c.Invoke(func(config *config.Config, grouter *gin.Engine) error {
 		fmt.Printf("Listening at: %s", config.Port)
 		srv := &http.Server{
 			Addr:           ":" + config.Port,
