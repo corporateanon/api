@@ -11,7 +11,7 @@ import (
 
 type AddressUpdateRequestBody struct {
 	CheckStatus    models.AddressArCheckStatus `json:"CheckStatus" binding:"required"`
-	ServiceMessage string                      `json:"ServiceMessage" binding:"required"`
+	ServiceMessage string                      `json:"ServiceMessage"`
 	Hash           string                      `json:"Hash" binding:"required"`
 }
 type AddressUpdateRequestURI struct {
