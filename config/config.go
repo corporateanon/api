@@ -12,6 +12,7 @@ type Config struct {
 	DBDriver     string
 	DBConnection string
 	RabbitmqURL  string
+	Redis        string
 }
 
 func NewConfig() *Config {
@@ -32,9 +33,12 @@ func NewConfig() *Config {
 		Port:         os.Getenv("PORT"),
 		DBDriver:     os.Getenv("DB_DRIVER"),
 		DBConnection: os.Getenv("DB_CONNECTION"),
-		RabbitmqURL:  os.Getenv("RABBITMQ_URL"),
+		Redis:        os.Getenv("REDIS"),
 	}
 
+	if config.Redis == "" {
+		config.Redis = "127.0.0.1:6379"
+	}
 	if config.Port == "" {
 		config.Port = "8000"
 	}
