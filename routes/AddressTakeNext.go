@@ -4,9 +4,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 	"github.com/my1562/api/models"
 	"github.com/my1562/api/utils"
 )
+
+type AddressTakeNextRequest struct {
+	ID int64 `uri:"id" binding:"gte=0"`
+}
 
 type AddressTakeNextResponse struct {
 	Result struct {
@@ -17,8 +22,22 @@ type AddressTakeNextResponse struct {
 
 func (service *AddressService) AddressTakeNext(c *gin.Context) {
 	address := &models.AddressAr{}
-	err := service.db.Order("taken_at ASC").First(address).Error
-	if err != nil {
+
+	request := AddressTakeNextRequest{}
+	if err := c.ShouldBindUri(&request); err != nil {
+		utils.GErrorBadRequest(c, err.Error())
+		return
+	}
+
+	var query *gorm.DB
+
+	if request.ID == 0 {
+		query = service.db.Order("taken_at ASC")
+	} else {
+		query = service.db.Where(request.ID)
+	}
+
+	if err := query.First(address).Error; err != nil {
 		if err.Error() == "record not found" {
 			utils.GErrorNotFound(c, "No addresses in database")
 			return
@@ -31,8 +50,8 @@ func (service *AddressService) AddressTakeNext(c *gin.Context) {
 	}
 
 	address.TakenAt = time.Now()
-	err = service.db.Save(address).Error
-	if err != nil {
+
+	if err := service.db.Save(address).Error; err != nil {
 		utils.GErrorInternal(c, err.Error())
 		return
 	}

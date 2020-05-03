@@ -17,6 +17,7 @@ func NewGinRouter(
 	route.GET("/address", addressService.AddressGetList)
 	route.GET("/address-count", addressService.AddressGetTotalCount)
 	route.POST("/address-take", addressService.AddressTakeNext)
+	route.POST("/address-take/:id", addressService.AddressTakeNext)
 	route.GET("/address/:id", addressService.AddressGetByID)
 	route.GET("/address-geocode/:lat/:lng/:accuracy", addressService.AddressGeocode)
 	route.GET("/address-lookup/:id", addressService.AddressGeocodeByID)
