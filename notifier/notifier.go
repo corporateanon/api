@@ -1,17 +1,16 @@
 package notifier
 
 import (
-	"encoding/json"
 	"log"
 
+	"github.com/hibiken/asynq"
 	"github.com/my1562/api/config"
 	"github.com/my1562/api/models"
-	"github.com/streadway/amqp"
+	"github.com/my1562/queue"
 )
 
 type Notifier struct {
-	qName string
-	ch    *amqp.Channel
+	client *asynq.Client
 }
 
 func failOnError(err error, msg string) {
@@ -21,23 +20,12 @@ func failOnError(err error, msg string) {
 }
 
 func NewNotifier(config *config.Config) *Notifier {
-	conn, err := amqp.Dial(config.RabbitmqURL)
-	failOnError(err, "Failed to connect to RabbitMQ")
-	ch, err := conn.Channel()
-	failOnError(err, "Failed to open a channel")
-	q, err := ch.QueueDeclare(
-		"hello", // name
-		false,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		nil,     // arguments
+	client := asynq.NewClient(
+		asynq.RedisClientOpt{
+			Addr: config.Redis,
+		},
 	)
-	failOnError(err, "Failed to declare a queue")
-	return &Notifier{
-		qName: q.Name,
-		ch:    ch,
-	}
+	return &Notifier{client: client}
 }
 
 func (me *Notifier) NotifyServiceMessageChange(chatIDs []int64, message string, addressString string, addressStatus models.AddressArCheckStatus) error {
@@ -58,23 +46,7 @@ func (me *Notifier) NotifyServiceMessageChange(chatIDs []int64, message string, 
 	fullMessageText := emojiIcon + " " + addressString + ": " + introduction + "\n\n" + message
 
 	for _, chatID := range chatIDs {
-		body, err := json.Marshal(map[string]interface{}{
-			"ChatID":  chatID,
-			"Message": fullMessageText,
-		})
-		if err != nil {
-			continue
-		}
-
-		err = me.ch.Publish(
-			"",       // exchange
-			me.qName, // routing key
-			false,    // mandatory
-			false,    // immediate
-			amqp.Publishing{
-				ContentType: "application/json",
-				Body:        body,
-			})
+		me.client.Enqueue(queue.NewNotifyTask(chatID, fullMessageText))
 	}
 
 	if err != nil {
